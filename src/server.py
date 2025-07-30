@@ -1,72 +1,57 @@
 #!/usr/bin/env python3
 """
-JIRA MCP Server
-Main server entry point using proven working patterns from WORKING_CODE_EXAMPLES.py
+JIRA MCP Server using FastMCP
+Main server entry point with clean FastMCP implementation
 """
 
 import asyncio
-import json
 import logging
-from typing import Dict, Optional, List
-from mcp.server import Server
-from mcp.server.models import InitializationOptions
+from mcp.server.fastmcp import FastMCP
 from mcp.server.stdio import stdio_server
 
-# Import custom tools
-from tools.issue_tools import CreateIssueTool, UpdateIssueTool
-from tools.search_tools import SearchIssuesTool
-from tools.project_tools import GetProjectsTool
-
-# Import JIRA client
+# Import configuration and client
+from config.settings import Settings
 from clients.jira_client import JiraClient
 
-# Import configuration
-from config.settings import Settings
+# Import tools (will be converted to FastMCP functions)
+from tools.jira_tools import create_jira_issue, update_jira_issue, search_jira_issues, get_jira_projects
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class JiraMCPServer:
-    """Main JIRA MCP Server using proven working patterns"""
+# Initialize FastMCP server
+mcp = FastMCP("jira-mcp-server")
+
+# Global client instance
+jira_client = None
+
+# Initialize JIRA client
+try:
+    settings = Settings()
+    jira_client = JiraClient(
+        base_url=settings.jira_base_url,
+        api_token=settings.jira_api_token,
+        cloud_id=settings.jira_cloud_id,
+        username=settings.jira_user_email
+    )
     
-    def __init__(self):
-        self.settings = Settings()
-        self.jira_client = JiraClient(
-            base_url=self.settings.jira_base_url,
-            api_token=self.settings.jira_api_token,
-            cloud_id=self.settings.jira_cloud_id,
-            username=self.settings.jira_user_email
-        )
-        
-        # Initialize MCP server
-        self.server = Server("jira-mcp-server")
-        
-        # Register tools using working patterns
-        self.server.list_tools(
-            CreateIssueTool(self.jira_client),
-            UpdateIssueTool(self.jira_client),
-            SearchIssuesTool(self.jira_client),
-            GetProjectsTool(self.jira_client)
-        )
+    logger.info("✅ JIRA MCP Server initialized successfully")
+    logger.info(f"Using Cloud ID: {settings.jira_cloud_id}")
+    logger.info(f"Using Site: {settings.jira_base_url}")
+    logger.info(f"Using Project: {settings.jira_project_key}")
     
-    async def run(self):
-        """Run the MCP server"""
-        logger.info("Starting JIRA MCP Server...")
-        logger.info(f"Using Cloud ID: {self.settings.jira_cloud_id}")
-        logger.info(f"Using Site: {self.settings.jira_base_url}")
-        logger.info(f"Using Project: {self.settings.jira_project_key}")
-        
-        try:
-            await stdio_server(self.server)
-        except Exception as e:
-            logger.error(f"Server error: {e}")
-            raise
+except Exception as e:
+    logger.error(f"❌ Failed to initialize JIRA client: {e}")
+    raise
 
 async def main():
     """Main entry point"""
-    server = JiraMCPServer()
-    await server.run()
+    try:
+        await stdio_server(mcp)
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        raise
 
 if __name__ == "__main__":
     asyncio.run(main()) 

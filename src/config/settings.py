@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     jira_project_name: str = "LedgerClient"
     
     # Authentication (from your .env)
-    jira_api_token: Optional[str] = Field(default=None, alias="JIRA_TOKEN")
+    jira_api_token: Optional[str] = Field(default=None, alias="JIRA_API_TOKEN")
     jira_user_email: Optional[str] = Field(default=None, alias="JIRA_USERNAME")
     jira_ssl_verify: bool = Field(default=True, alias="JIRA_SSL_VERIFY")
     
